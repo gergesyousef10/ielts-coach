@@ -4,7 +4,7 @@ import { fakeStore } from './helpers.js';
 import { getSettings, saveSettings, addMistakes, getMistakes, addResult, getResults } from '../js/storage.js';
 
 test('defaults', () => {
-  assert.deepEqual(getSettings(fakeStore()), { apiKey: '', examType: 'academic', model: 'gemini-flash-latest', readAloud: false });
+  assert.deepEqual(getSettings(fakeStore()), { apiKey: '', examType: 'academic', model: 'gemini-flash-latest', readAloud: false, voiceEn: '', voiceAr: '' });
 });
 
 test('saveSettings merges and stores key separately', () => {

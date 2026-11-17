@@ -1,4 +1,4 @@
-const DEFAULTS = { examType: 'academic', model: 'gemini-flash-latest', readAloud: false };
+const DEFAULTS = { examType: 'academic', model: 'gemini-flash-latest', readAloud: false, voiceEn: '', voiceAr: '' };
 const K = { key: 'ic.apiKey', settings: 'ic.settings', mistakes: 'ic.mistakes', results: 'ic.results' };
 
 function store_(s) { return s ?? globalThis.localStorage; }

@@ -22,7 +22,7 @@ export async function startServer() {
 }
 
 /** replies: array of strings (or functions of request body) returned in order by the stubbed Gemini */
-export async function openApp({ replies = [], storage = {}, hash = '' } = {}) {
+export async function openApp({ replies = [], storage = {}, hash = '', init = null } = {}) {
   const { server, url } = await startServer();
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
@@ -38,6 +38,7 @@ export async function openApp({ replies = [], storage = {}, hash = '' } = {}) {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ candidates: [{ content: { parts: [{ text }] } }] }) });
   });
   await page.addInitScript((s) => { if (!sessionStorage.getItem('seeded')) { for (const [k, v] of Object.entries(s)) localStorage.setItem(k, v); sessionStorage.setItem('seeded', '1'); } }, storage);
+  if (init) await page.addInitScript(init);
   await page.goto(url + hash);
   const close = async () => { await browser.close(); server.close(); };
   return { page, calls, errors, close, url };
