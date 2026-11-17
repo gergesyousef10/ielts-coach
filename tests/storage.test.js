@@ -4,7 +4,7 @@ import { fakeStore } from './helpers.js';
 import { getSettings, saveSettings, addMistakes, getMistakes, addResult, getResults } from '../js/storage.js';
 
 test('defaults', () => {
-  assert.deepEqual(getSettings(fakeStore()), { apiKey: '', examType: 'academic', model: 'gemini-flash-latest', readAloud: false, voiceEn: '', voiceAr: '' });
+  assert.deepEqual(getSettings(fakeStore()), { apiKey: '', examType: 'academic', model: 'gemini-flash-latest', readAloud: false, voiceEn: '', voiceAr: '', elevenKey: '', elevenVoiceAr: 'x6fvBLXv9YxzoVJQ0wp6', elevenVoiceEn: 'lrivmCHEM3HUU4GFbeDS', elevenModel: 'eleven_multilingual_v2' });
 });
 
 test('saveSettings merges and stores key separately', () => {

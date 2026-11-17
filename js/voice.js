@@ -1,4 +1,5 @@
 import { getSettings } from './storage.js';
+import { elevenTTS, elevenFriendlyError } from './eleven.js';
 
 const norm = (l) => String(l || '').toLowerCase().replace('_', '-');
 
@@ -37,13 +38,23 @@ export function cleanForSpeech(text) {
     .trim();
 }
 
-export function speak(text, lang = 'en-GB') {
+/** Decide which engine speaks: ElevenLabs when a key and a voice for that language are set. */
+export function chooseVoiceEngine(settings, lang) {
+  const voiceId = lang === 'ar' ? settings.elevenVoiceAr : settings.elevenVoiceEn;
+  if (settings.elevenKey && voiceId) return { engine: 'eleven', apiKey: settings.elevenKey, voiceId, model: settings.elevenModel };
+  return { engine: 'device' };
+}
+
+let currentAudio = null;
+let speakToken = 0;
+let lastElevenNotice = 0;
+
+function speakDevice(text, lang, s) {
   const synth = globalThis.speechSynthesis;
   if (!synth || !globalThis.SpeechSynthesisUtterance) return null;
   synth.cancel();
   const isAr = lang === 'ar';
   const target = isAr ? 'ar-EG' : lang;
-  const s = getSettings();
   const u = new SpeechSynthesisUtterance(cleanForSpeech(text));
   u.lang = target;
   const v = pickVoice(synth.getVoices(), target, isAr ? s.voiceAr : s.voiceEn);
@@ -51,6 +62,40 @@ export function speak(text, lang = 'en-GB') {
   u.rate = isAr ? 1 : 0.95;
   synth.speak(u);
   return u;
+}
+
+function notice(msg) {
+  // one small toast at most every 30s so a failing voice doesn't spam the screen
+  if (typeof document === 'undefined' || Date.now() - lastElevenNotice < 30000) return;
+  lastElevenNotice = Date.now();
+  const t = document.createElement('div');
+  t.className = 'error toast';
+  t.textContent = msg;
+  document.body.append(t);
+  setTimeout(() => t.remove(), 7000);
+}
+
+/** Speak text with ElevenLabs if configured, else (or on any failure) with the device voice. */
+export async function speak(text, lang = 'en-GB') {
+  stopSpeaking();
+  const token = ++speakToken;
+  const s = getSettings();
+  const choice = chooseVoiceEngine(s, lang);
+  if (choice.engine === 'eleven') {
+    try {
+      const blob = await elevenTTS({ apiKey: choice.apiKey, voiceId: choice.voiceId, model: choice.model, text: cleanForSpeech(text) });
+      if (token !== speakToken) return null; // something else started speaking meanwhile
+      const audio = new Audio(URL.createObjectURL(blob));
+      currentAudio = audio;
+      await audio.play();
+      return audio;
+    } catch (e) {
+      if (token !== speakToken) return null;
+      console.warn('ElevenLabs failed, using device voice', e);
+      if (e?.kind) notice(elevenFriendlyError(e));
+    }
+  }
+  return speakDevice(text, lang, s);
 }
 
 /** Voices load asynchronously in Chrome; resolves once the list is available (or after 1.5s). */
@@ -66,7 +111,11 @@ export function loadVoices() {
   });
 }
 
-export function stopSpeaking() { globalThis.speechSynthesis?.cancel(); }
+export function stopSpeaking() {
+  speakToken++;
+  globalThis.speechSynthesis?.cancel();
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+}
 
 export function speakButton(text, lang = 'ar') {
   const b = document.createElement('button');

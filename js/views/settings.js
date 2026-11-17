@@ -1,6 +1,13 @@
 import { getSettings, saveSettings } from '../storage.js';
 import { h } from '../ui.js';
 import { loadVoices, voicesFor, voiceQuality, speak } from '../voice.js';
+import { listVoices, elevenFriendlyError } from '../eleven.js';
+
+const SUGGESTED = {
+  ar: [['x6fvBLXv9YxzoVJQ0wp6', 'Momen – مصري هادي ودافي (مقترح)'], ['PmRaqkJ2uk3Y9jrp9UjJ', 'Mawardy – شاب مصري'], ['NwMzeQCEU9Ecy3zXYTkV', 'Asmaa – بنت مصرية'], ['YwQu4f7UeJh7h0uWMnEn', 'Seham – ست مصرية']],
+  en: [['lrivmCHEM3HUU4GFbeDS', 'Catherine – British (مقترح)'], ['tWZ6sbznORyzWaRkNJTg', 'Phil Smith – British']],
+};
+const MODELS = [['eleven_multilingual_v2', 'Multilingual v2 (أحسن جودة)'], ['eleven_flash_v2_5', 'Flash v2.5 (أسرع ونص التكلفة)'], ['eleven_v3', 'v3 (أكتر تعبير)']];
 
 export function render(container) {
   const s = getSettings();
@@ -29,6 +36,55 @@ export function render(container) {
     return h('div', { class: 'q' }, h('b', {}, label), h('div', { class: 'row' }, sel, test));
   }
 
+  function elevenCard() {
+    const keyIn = h('input', { type: 'password', id: 'elevenKey', value: s.elevenKey, placeholder: 'sk_...', autocomplete: 'off', class: 'en' });
+    const status = h('p', { class: 'muted', id: 'eleven-status' });
+    const select = (kind) => {
+      const current = kind === 'ar' ? s.elevenVoiceAr : s.elevenVoiceEn;
+      const sel = h('select', { id: `eleven-${kind}` }, ...SUGGESTED[kind].map(([id, name]) => h('option', { value: id, selected: id === current }, name)));
+      if (current && !SUGGESTED[kind].some(([id]) => id === current)) sel.append(h('option', { value: current, selected: true }, current));
+      return sel;
+    };
+    const selAr = select('ar');
+    const selEn = select('en');
+    const model = h('select', { id: 'elevenModel' }, ...MODELS.map(([id, name]) => h('option', { value: id, selected: id === s.elevenModel }, name)));
+    const tryBtn = (kind, sample) => {
+      const b = h('button', { type: 'button', class: 'secondary', id: `try-eleven-${kind}` }, '▶️ جرّب');
+      b.addEventListener('click', () => {
+        saveSettings({ elevenKey: keyIn.value.trim(), elevenModel: model.value, [kind === 'ar' ? 'elevenVoiceAr' : 'elevenVoiceEn']: (kind === 'ar' ? selAr : selEn).value });
+        speak(sample, kind === 'ar' ? 'ar' : 'en-GB');
+      });
+      return b;
+    };
+    const load = h('button', { type: 'button', class: 'secondary', id: 'eleven-load' }, '📥 هات الأصوات اللي في حسابي');
+    load.addEventListener('click', async () => {
+      status.textContent = 'بجيب الأصوات...';
+      try {
+        const voices = await listVoices({ apiKey: keyIn.value.trim() });
+        for (const v of voices) {
+          for (const [sel, kind] of [[selAr, 'ar'], [selEn, 'en']]) {
+            if (![...sel.options].some((o) => o.value === v.id)) sel.append(h('option', { value: v.id }, `${v.name}${v.language ? ` (${v.language})` : ''}`));
+          }
+        }
+        status.textContent = `تمام ✅ لقيت ${voices.length} صوت في حسابك، وضفتهم للقايمة.`;
+      } catch (e) {
+        status.textContent = elevenFriendlyError(e);
+      }
+    });
+    return h('div', { class: 'card' },
+      h('h3', {}, '🎙️ صوت طبيعي من ElevenLabs (اختياري)'),
+      h('p', { class: 'muted' }, 'لو حطيت مفتاح ElevenLabs، كل الأصوات في الموقع هتطلع منه. ولو حصلت مشكلة أو الـ credits خلصت، هيرجع لصوت جهازك لوحده. الجملة اللي اتقرت مرة مش بتتدفع تاني لو سمعتها تاني في نفس الجلسة.'),
+      h('ol', { class: 'muted' },
+        h('li', {}, 'افتح ', h('a', { href: 'https://elevenlabs.io/app/settings/api-keys', target: '_blank', rel: 'noopener' }, 'صفحة API Keys'), ' ودوس Create API Key.'),
+        h('li', {}, 'خلي الصلاحيات: Text to Speech بس (و Voices: Read لو عايز زرار "هات الأصوات")، وحط حد للـ credits.'),
+        h('li', {}, 'لو الصوت مش شغال: افتح ', h('a', { href: 'https://elevenlabs.io/app/voice-library?search=Momen', target: '_blank', rel: 'noopener' }, 'Voice Library'), ' ودوس "Add to my voices" على الصوت.')),
+      keyIn,
+      h('div', { class: 'q' }, h('b', {}, '🇪🇬 صوت المدرس'), h('div', { class: 'row' }, selAr, tryBtn('ar', 'أهلا يا بطل! يلا بينا نذاكر، وماتقلقش، أنا هطلّعلك كل غلطة 😄'))),
+      h('div', { class: 'q' }, h('b', {}, '🇬🇧 صوت الممتحن'), h('div', { class: 'row' }, selEn, tryBtn('en', "Good morning. Can you tell me your full name, please?"))),
+      h('div', { class: 'q' }, h('b', {}, 'الموديل'), model),
+      load, status);
+  }
+
   container.append(
     h('h2', {}, '⚙️ الإعدادات'),
     h('div', { class: 'card' },
@@ -47,6 +103,7 @@ export function render(container) {
       voiceRow('en', '🇬🇧 صوت الممتحن (English)', 'Hello! Let us practise IELTS speaking together.'),
       voiceRow('ar', '🇪🇬 صوت المدرس (عربي)', 'أهلا يا بطل، يلا نذاكر سوا'),
       h('p', { class: 'muted' }, 'الأصوات دي جاية من جهازك. لو كلها وحشة: على الماك افتح System Settings ← Accessibility ← Spoken Content ← System Voice ← Manage Voices، ونزّل صوت مكتوب جنبه Premium أو Enhanced (إنجليزي وعربي)، وبعدين اقفل المتصفح وافتحه تاني. على الآيفون: Settings ← Accessibility ← Spoken Content ← Voices.')),
+    elevenCard(),
     h('div', { class: 'card' },
       h('h3', {}, '🤖 الموديل'),
       model,
@@ -61,6 +118,10 @@ export function render(container) {
           readAloud: readAloud.checked,
           voiceEn: container.querySelector('#voice-en')?.value || '',
           voiceAr: container.querySelector('#voice-ar')?.value || '',
+          elevenKey: container.querySelector('#elevenKey').value.trim(),
+          elevenVoiceAr: container.querySelector('#eleven-ar').value,
+          elevenVoiceEn: container.querySelector('#eleven-en').value,
+          elevenModel: container.querySelector('#elevenModel').value,
         });
         msg.textContent = 'اتحفظ ✅ يلا بينا نذاكر!';
       },

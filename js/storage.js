@@ -1,4 +1,5 @@
-const DEFAULTS = { examType: 'academic', model: 'gemini-flash-latest', readAloud: false, voiceEn: '', voiceAr: '' };
+const DEFAULTS = { examType: 'academic', model: 'gemini-flash-latest', readAloud: false, voiceEn: '', voiceAr: '',
+  elevenKey: '', elevenVoiceAr: 'x6fvBLXv9YxzoVJQ0wp6', elevenVoiceEn: 'lrivmCHEM3HUU4GFbeDS', elevenModel: 'eleven_multilingual_v2' };
 const K = { key: 'ic.apiKey', settings: 'ic.settings', mistakes: 'ic.mistakes', results: 'ic.results' };
 
 function store_(s) { return s ?? globalThis.localStorage; }
