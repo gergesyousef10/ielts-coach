@@ -2,5 +2,9 @@
   "name": "ielts-coach",
   "private": true,
   "type": "module",
-  "scripts": { "test": "node --test" }
+  "scripts": {
+    "test": "node --test",
+    "e2e": "for f in e2e/*.e2e.mjs; do node $f || exit 1; done",
+    "serve": "python3 -m http.server 8080"
+  }
 }
