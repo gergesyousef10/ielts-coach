@@ -1,10 +1,7 @@
 import { friendlyError } from './gemini.js';
 import { getSettings } from './storage.js';
 import { speak, speakButton } from './voice.js';
-
-export function esc(s) {
-  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
+export { esc } from './ui-esc.js';
 
 export function h(tag, attrs = {}, ...children) {
   const e = document.createElement(tag);
