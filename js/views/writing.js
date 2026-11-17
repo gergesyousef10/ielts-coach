@@ -44,7 +44,7 @@ export function renderWriting(container, task) {
       out.innerHTML = `<div class="card">${feedbackHtml(fb)}</div>`;
       out.append(followUp(essayMsg, fb));
       out.scrollIntoView({ behavior: 'smooth' });
-    });
+    }, 'بصحح كلمة كلمة… ثواني وراجعلك 🧐');
   });
 
   container.append(

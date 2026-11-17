@@ -13,24 +13,30 @@ function toPart(m) {
   return { text: m.text ?? '' };
 }
 
-export async function callGemini({ apiKey, model, system, messages, json = false, fetchImpl = globalThis.fetch }) {
+export async function callGemini({ apiKey, model, system, messages, json = false, fetchImpl = globalThis.fetch, timeoutMs = 120000 }) {
   const body = {
     system_instruction: { parts: [{ text: system }] },
     contents: messages.map((m) => ({ role: m.role, parts: [toPart(m)] })),
     generationConfig: json ? { responseMimeType: 'application/json' } : {},
   };
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   let res;
+  let data = null;
   try {
     res = await fetchImpl(ENDPOINT + encodeURIComponent(model) + ':generateContent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify(body),
+      signal: ctrl.signal,
     });
+    try { data = await res.json(); } catch (e) { if (ctrl.signal.aborted) throw e; data = null; }
   } catch (e) {
+    if (ctrl.signal.aborted) throw new GeminiError('timeout', `No reply after ${timeoutMs}ms`);
     throw new GeminiError('network', String(e?.message || e));
+  } finally {
+    clearTimeout(timer);
   }
-  let data = null;
-  try { data = await res.json(); } catch { data = null; }
   if (!res.ok) {
     const msg = data?.error?.message || `HTTP ${res.status}`;
     if (res.status === 429) throw new GeminiError('quota', msg);
@@ -46,6 +52,7 @@ const MESSAGES = {
   quota: 'الـ AI خد نفسه شوية 😅 الحد المجاني خلص دلوقتي. استنى دقيقة وجرب تاني، ولو لسه، يبقى خلص بتاع النهارده وكمل بكرة. اللي كتبته متحفظ متقلقش.',
   auth: 'المفتاح (API key) شكله مش مظبوط أو مش موجود 🔑 روح للإعدادات وحطه تاني.',
   network: 'النت فصل ولا إيه؟ 📶 اتأكد إنك متصل وجرب تاني.',
+  timeout: 'الـ AI اتأخر أوي ومردش ⏰ ممكن يكون زحمة عند جوجل. جرب تاني، ولو فضلت كده غيّر الموديل من الإعدادات لـ gemini-flash-lite-latest (أسرع).',
   bad_response: 'الـ AI رد رد غريب كده 🤔 جرب تاني، ولو فضلت المشكلة جرب تغير اسم الموديل من الإعدادات.',
 };
 

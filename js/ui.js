@@ -24,11 +24,13 @@ export function showError(container, err) {
 }
 
 /** Run an async action with a busy button; shows friendly errors in `container`. */
-export async function busy(button, container, fn) {
+export async function busy(button, container, fn, waitingText = '') {
   const label = button.textContent;
   button.disabled = true;
   button.classList.add('loading');
   container.querySelectorAll('.error').forEach((x) => x.remove());
+  const wait = waitingText ? h('p', { class: 'muted waiting' }, waitingText) : null;
+  if (wait) button.after(wait);
   try {
     return await fn();
   } catch (e) {
@@ -36,6 +38,7 @@ export async function busy(button, container, fn) {
     showError(container, e);
     return undefined;
   } finally {
+    wait?.remove();
     button.disabled = false;
     button.classList.remove('loading');
     button.textContent = label;

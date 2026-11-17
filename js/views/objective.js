@@ -13,7 +13,7 @@ export function renderObjective(container, kind) {
     const ex = await askTutor({ mode: kind, json: true, messages: [{ role: 'user', text: 'New exercise please.' }] });
     if (!Array.isArray(ex.questions) || !ex.text) throw Object.assign(new Error('bad exercise'), { kind: 'bad_response' });
     showExercise(ex);
-  }));
+  }, 'بجهزلك تمرين جديد… ده ممكن ياخد لحد دقيقة، استحملني ☕'));
 
   function showExercise(ex) {
     stopSpeaking();
@@ -88,7 +88,7 @@ export function renderObjective(container, kind) {
   container.append(
     h('h2', {}, isListening ? '🎧 Listening' : '📖 Reading'),
     h('div', { class: 'card' }, h('p', {}, isListening
-      ? 'هيتولد تمرين جديد، وموبايلك هيقراه بصوت إنجليزي. جاوب على الأسئلة ودوس صحّحلي.'
+      ? 'هيتولد تمرين جديد، وهيتقري عليك بصوت إنجليزي. جاوب على الأسئلة ودوس صحّحلي.'
       : 'هيتولد قطعة جديدة وأسئلة زي الامتحان. اقرا وجاوب ودوس صحّحلي.'), genBtn),
     area,
   );

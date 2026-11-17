@@ -56,3 +56,16 @@ test('friendlyError gives Arabic text per kind', () => {
   }
   assert.match(friendlyError(new Error('weird')), /[؀-ۿ]/);
 });
+
+test('slow request times out with kind timeout', async () => {
+  const hang = (url, opts) => new Promise((_, reject) => {
+    opts.signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })));
+  });
+  const started = Date.now();
+  assert.equal(await kindOf(callGemini({ ...base, fetchImpl: hang, timeoutMs: 30 })), 'timeout');
+  assert.ok(Date.now() - started < 1000);
+});
+test('timeout has an Arabic message', () => {
+  assert.match(friendlyError(new GeminiError('timeout', 'x')), /[؀-ۿ]/);
+  assert.notEqual(friendlyError(new GeminiError('timeout', 'x')), friendlyError(new Error('?')));
+});
