@@ -31,7 +31,8 @@ try {
   await page.goto(page.url().replace(/#.*/, '#/chat'));
   await page.fill('#msg', 'hello');
   await page.press('#msg', 'Enter');
-  await page.waitForFunction(() => document.querySelectorAll('.bubble.tutor').length >= 2, null, { timeout: 5000 });
+  // the chat may already hold the quiz exchange from this session, so wait for the new reply text itself
+  await page.waitForFunction(() => document.querySelector('.bubbles').textContent.includes('يا باشا'), null, { timeout: 5000 });
   check((await page.textContent('.bubbles')).includes('يا باشا'), 'chat reply');
   check(errors.length === 0, 'no page errors: ' + errors.join(' | '));
 } catch (e) {
