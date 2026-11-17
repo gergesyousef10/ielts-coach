@@ -9,7 +9,8 @@ function countWords(t) { return (t.trim().match(/\S+/g) || []).length; }
 
 export function renderWriting(container, task) {
   const draftKey = `ic.draft.writing${task}`;
-  const saved = JSON.parse(localStorage.getItem(draftKey) || '{}');
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(draftKey)) || {}; } catch { saved = {}; }
   const question = h('textarea', { id: 'question', class: 'en', rows: 4, placeholder: 'اكتب السؤال هنا، أو دوس "اديني سؤال" 👇', style: 'min-height:90px' });
   question.value = saved.question || '';
   const answer = h('textarea', { id: 'answer', class: 'en', placeholder: 'Start writing your answer here...' });
